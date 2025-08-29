@@ -33,9 +33,7 @@
 </head>
 <body>
   <div class="container">
-    <h1>Tool tạo ảnh QR chuyển khoản</h1>
-   
-
+    <h1>Tool tạo ảnh QR chuyển khoản | Ngân Lượng Silver</h1>
     <div class="grid">
       <!-- Form -->
       <div class="card">
@@ -64,8 +62,13 @@
           </div>
         </div>
         <div>
-          <label>Nội dung chuyển khoản (tùy chọn)</label>
-          <input id="des" placeholder="VD: Họ tên - SĐT - nội dung" value="Phan Thi Trung - 0763600889 - ck mua bac" />
+          <label>Nội dung chuyển khoản</label>
+          <select id="desSelect">
+            <option value="Ngan Luong Silver - 0763600889 - ck mua bac" selected>Ngan Luong Silver - 0763600889 - ck mua bac</option>
+            <option value="Ngan Luong Future - 0777584279 - ck mua bac">Ngan Luong Future - 0777584279 - ck mua bac</option>
+            <option value="other">Khác (tự nhập)</option>
+          </select>
+          <input id="des" placeholder="Nhập nội dung khác..." style="margin-top:6px; display:none" />
         </div>
 
         <div style="margin-top:12px">
@@ -100,7 +103,6 @@
         <div class="kinfo" id="accLabel"></div>
       </div>
     </div>
-
   </div>
 
   <!-- PDF.js từ CDN -->
@@ -194,7 +196,7 @@
       const acc = $('acc').value.trim();
       const bank = $('bank').value.trim();
       const amount = $('amount').value.trim();
-      const des = $('des').value.trim();
+      const des = $('desSelect').value === 'other' ? $('des').value.trim() : $('desSelect').value.trim();
       const template = $('template').value;
 
       if(!acc || !bank){
@@ -220,20 +222,40 @@
         img.src = url;
         img.style.opacity = 1;
         save.href = url;
+        // Đặt tên file tải về
+        const bank = $('bank').value.trim();
+        const acc = $('acc').value.trim();
+        const amount = $('amount').value.trim();
+        const today = new Date().toISOString().slice(0,10);
+        let filename = `QR_${bank}_${acc}`;
+        if(amount) filename += `_${amount}`;
+        filename += `_${today}.png`;
+        save.download = filename;
         errorEl.textContent = '';
       } else {
         img.removeAttribute('src');
         img.style.opacity = .5;
         save.removeAttribute('href');
+        save.removeAttribute('download');
       }
       const name = $('accName').value.trim();
-      const acc = $('acc').value.trim();
-      $('accLabel').textContent = acc ? `${name ? name + ' • ' : ''}${acc}` : '';
+      const accVal = $('acc').value.trim();
+      $('accLabel').textContent = accVal ? `${name ? name + ' • ' : ''}${accVal}` : '';
     }
 
-    ['acc','bank','amount','des','template','accName'].forEach(id => {
+    ['acc','bank','amount','template','accName','des','desSelect'].forEach(id => {
       $(id).addEventListener('input', refresh);
       $(id).addEventListener('change', refresh);
+    });
+
+    $('desSelect').addEventListener('change', ()=>{
+      if($('desSelect').value === 'other'){
+        $('des').style.display = 'block';
+      } else {
+        $('des').style.display = 'none';
+        $('des').value = $('desSelect').value;
+      }
+      refresh();
     });
 
     $('btnCopy').addEventListener('click', async function(){
