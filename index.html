@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tool tạo QR Sepay (HTML thuần)</title>
+  <style>
+    :root {
+      --bg: #f9fafb; --card: #ffffff; --muted: #475569; --text: #0f172a; --accent: #2563eb; --ring:#e2e8f0;
+    }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; background: var(--bg); color: var(--text); }
+    .container { max-width: 1000px; margin: 24px auto; padding: 0 16px; }
+    .grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 20px; }
+    .card { background: var(--card); border: 1px solid var(--ring); border-radius: 16px; padding: 18px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+    h1 { font-size: 20px; margin: 0 0 10px; letter-spacing: .2px; }
+    p { color: var(--muted); margin: 0 0 16px; }
+    label { display:block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+    input, select, textarea { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--ring); background: #fff; color: var(--text); outline: none; }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,.25); }
+    .row { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .btns { display:flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+    button, .btn { cursor:pointer; border:1px solid var(--ring); background:#f1f5f9; color:var(--text); padding:10px 14px; border-radius:10px; }
+    .btn.primary { background: linear-gradient(135deg, #2563eb, #06b6d4); color:#fff; border: none; }
+    code { background:#f1f5f9; border:1px solid var(--ring); padding:8px 10px; border-radius:8px; display:block; word-break: break-all; color: #334155; }
+    .qr-wrap { text-align:center; }
+    .qr-wrap img { width: 100%; max-width: 360px; border-radius: 12px; background: #fff; }
+    .kinfo { text-align:center; font-size:14px; color: var(--muted); margin-top: 10px; }
+    .helper { font-size:12px; color: var(--muted); margin-top:6px }
+    footer { margin-top: 22px; text-align:center; color: var(--muted); font-size:12px }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Tool tạo ảnh QR chuyển khoản – Sepay</h1>
+    <p>Điền thông tin, link ảnh QR sẽ tạo tự động theo cấu trúc <code>https://qr.sepay.vn/img?acc=SO_TAI_KHOAN&bank=NGAN_HANG&amount=SO_TIEN&des=NOI_DUNG&template=TEMPLATE</code></p>
+
+    <div class="grid">
+      <!-- Form -->
+      <div class="card">
+        <div class="row">
+          <div>
+            <label>Số tài khoản (bắt buộc)</label>
+            <input id="acc" value="1055513930" placeholder="VD: 1055513930" />
+          </div>
+          <div>
+            <label>Ngân hàng (mã hoặc short_name) – ví dụ: VCB hoặc Vietcombank (bắt buộc)</label>
+            <input id="bank" value="VCB" placeholder="VD: VCB hoặc Vietcombank" />
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Số tiền (tùy chọn) — có thể để trống. Upload PDF sẽ tự điền nếu tìm thấy "Còn phải thu"</label>
+            <input id="amount" type="text" placeholder="VD: 1000000" />
+          </div>
+          <div>
+            <label>Template</label>
+            <select id="template">
+              <option value="">(mặc định)</option>
+              <option value="compact">compact</option>
+              <option value="qronly">qronly</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label>Nội dung chuyển khoản (tùy chọn)</label>
+          <input id="des" placeholder="VD: Họ tên - SĐT - nội dung" value="Phan Thi Trung - 0763600889 - ck mua bac" />
+        </div>
+
+        <div style="margin-top:12px">
+          <label>Upload hoá đơn PDF (tự trích số ở mục "Còn phải thu")</label>
+          <input id="pdfFile" type="file" accept="application/pdf" />
+          <div class="helper" id="pdfMsg">Không có file nào được tải lên.</div>
+        </div>
+
+        <div class="row" style="margin-top:12px">
+          <div>
+            <label>Tên chủ TK (hiển thị phụ, không gửi lên link)</label>
+            <input id="accName" value="CTCP KIM LOAI QUY ANCARAT" />
+          </div>
+        </div>
+
+        <div class="btns">
+          <a class="btn primary" id="btnOpen" target="_blank" rel="noopener">Mở ảnh QR</a>
+          <a class="btn" id="btnSave" download>Tải ảnh về</a>
+        </div>
+
+        <div style="margin-top:14px">
+          <label>Link ảnh QR tạo ra</label>
+          <code id="outUrl"></code>
+          <div class="helper">Lưu ý: Tham số <b>bank</b> nhận mã ngân hàng hoặc short_name (ví dụ: <i>VCB</i> hoặc <i>Vietcombank</i>). Chỉ <b>acc</b> và <b>bank</b> là bắt buộc.</div>
+          <div id="error" style="color:#b91c1c; margin-top:8px; font-size:13px;"></div>
+        </div>
+      </div>
+
+      <!-- Preview -->
+      <div class="card qr-wrap">
+        <img id="qrImg" alt="QR sẽ hiển thị ở đây" />
+        <div class="kinfo" id="accLabel"></div>
+      </div>
+    </div>
+
+    <footer>
+      Dùng thử nhanh: <code>https://qr.sepay.vn/img?bank=Vietcombank&acc=123123123123&template=compact&amount=123123&des=sdfsdfsdf</code>
+    </footer>
+  </div>
+
+  <!-- PDF.js từ CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <script>
+    if(window['pdfjsLib']){
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    }
+
+    const $ = id => document.getElementById(id);
+    const errorEl = $('error');
+    const pdfMsg = $('pdfMsg');
+
+    function extractAmountFromText(text){
+      const patterns = [
+        /C[oòóỏõọOÒÓỎÕỌ]n\s+p[hh]ải\s+thu\s*[:\-–—]?\s*([\d.,]+)/i,
+        /Còn\s+phải\s+thu\s*[:\-–—]?\s*([\d.,]+)/i,
+        /Con\s+phai\s+thu\s*[:\-–—]?\s*([\d.,]+)/i
+      ];
+      for(const re of patterns){
+        const m = text.match(re);
+        if(m && m[1]){
+          const raw = m[1].replace(/[.,]/g, '');
+          if(/^[0-9]+$/.test(raw)) return raw;
+        }
+      }
+      return null;
+    }
+
+    async function parsePdfFile(file){
+      errorEl.textContent = '';
+      pdfMsg.textContent = 'Đang đọc file...';
+      try{
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
+        let fullText = '';
+        for(let i=1;i<=pdf.numPages;i++){
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          const strings = content.items.map(it => it.str);
+          fullText += strings.join(' ') + '\n';
+        }
+        pdfMsg.textContent = 'Đã đọc xong. Đang tìm "Còn phải thu"...';
+        const amount = extractAmountFromText(fullText);
+        if(amount){
+          $('amount').value = amount;
+          pdfMsg.textContent = `Tìm thấy "Còn phải thu": ${amount} — đã điền vào ô Số tiền.`;
+          errorEl.textContent = '';
+          refresh();
+        } else {
+          pdfMsg.textContent = 'Không tìm thấy mục "Còn phải thu" trong file.';
+          errorEl.textContent = 'Lỗi: không tìm thấy số "Còn phải thu" trong PDF.';
+        }
+      } catch(err){
+        console.error(err);
+        pdfMsg.textContent = 'Đọc file thất bại.';
+        errorEl.textContent = 'Lỗi khi đọc PDF: ' + (err && err.message ? err.message : String(err));
+      }
+    }
+
+    $('pdfFile').addEventListener('change', (e)=>{
+      const f = e.target.files[0];
+      if(!f){ pdfMsg.textContent = 'Không có file nào được tải lên.'; return; }
+      if(f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')){
+        pdfMsg.textContent = 'Vui lòng chọn file PDF.';
+        errorEl.textContent = 'Lỗi: file không phải PDF.';
+        return;
+      }
+      parsePdfFile(f);
+    });
+
+    function buildURL(){
+      const base = 'https://qr.sepay.vn/img';
+      const acc = $('acc').value.trim();
+      const bank = $('bank').value.trim();
+      const amount = $('amount').value.trim();
+      const des = $('des').value.trim();
+      const template = $('template').value;
+
+      if(!acc || !bank){
+        return '';
+      }
+      const params = new URLSearchParams();
+      params.set('acc', acc);
+      params.set('bank', bank);
+      if(amount) params.set('amount', amount);
+      if(des) params.set('des', des);
+      if(template) params.set('template', template);
+      return base + '?' + params.toString();
+    }
+
+    function refresh(){
+      const url = buildURL();
+      const out = $('outUrl');
+      const img = $('qrImg');
+      const open = $('btnOpen');
+      const save = $('btnSave');
+
+      out.textContent = url || '— thiếu acc/bank —';
+      if(url){
+        img.src = url;
+        img.style.opacity = 1;
+        open.href = url;
+        save.href = url;
+        errorEl.textContent = '';
+      } else {
+        img.removeAttribute('src');
+        img.style.opacity = .5;
+        open.removeAttribute('href');
+        save.removeAttribute('href');
+      }
+      const name = $('accName').value.trim();
+      const acc = $('acc').value.trim();
+      $('accLabel').textContent = acc ? `${name ? name + ' • ' : ''}${acc}` : '';
+    }
+
+    ['acc','bank','amount','des','template','accName'].forEach(id => {
+      $(id).addEventListener('input', refresh);
+      $(id).addEventListener('change', refresh);
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      refresh();
+    });
+  </script>
+</body>
+</html>
